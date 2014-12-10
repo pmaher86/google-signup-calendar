@@ -3,10 +3,9 @@ function doGet(e) {
   if (mode=="add"){
     var userEmail = e.parameter.email;
     var cal = CalendarApp.getCalendarById(e.parameter.cal);
-    var sd = new Date(parseInt(e.parameter.sd));
-    var ed = new Date(parseInt(e.parameter.ed));
-    
-    var calEvent=cal.createEventFromDescription(userEmail+" "+(sd.getMonth()+1)+"/"+sd.getDate()+" to "+(ed.getMonth()+1)+"/"+ed.getDate());
+    var startDate = new Date(parseInt(e.parameter.sd));
+    var endDate = new Date(parseInt(e.parameter.ed));
+    var calEvent=cal.createEvent(userEmail, startDate,endDate);
     calEvent.addGuest(userEmail);
     calEvent.setDescription(e.parameter.apptNotes);
   }
@@ -16,3 +15,4 @@ function doGet(e) {
     eventSeries.deleteEventSeries();
   }
 }
+
