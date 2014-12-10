@@ -1,0 +1,333 @@
+// global constants
+var PANEL_WIDTH="600";
+var TEXTBOX_WIDTH="50";
+// Spreadsheet where all the time booking data is stored
+var CALENDAR_ID = "XXXXXXXXXXX@group.calendar.google.com";
+var EDIT_CALENDAR_SCRIPT_URL="https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXX/exec";
+var NUM_DAYS_ADVANCE = 7;
+var DAY_IN_MSEC=86400000;
+
+/*
+* @return UiInstance Application created using UI Services
+*                    which includes all the widgets and callback handler hooks
+*
+*/
+function doGet(e) {
+ var app = UiApp.createApplication().setTitle("Calendar Signup");
+ //create form widgets
+  createForm_(app)
+  return app;
+}
+
+
+/*
+* @param UiInstance Private method which creates all the widgets in the App
+*/
+function createForm_(container) {
+  // create a Vertical Panel
+  var vPanel = container.createVerticalPanel();
+  vPanel.setWidth(PANEL_WIDTH);
+  vPanel.setStyleAttribute("padding","10px");
+  vPanel.setStyleAttribute("fontSize", "12pt");
+  vPanel.setId("panel");
+  
+  //create a Horizontal Panel
+  var hPanel = container.createHorizontalPanel();
+  hPanel.setWidth(PANEL_WIDTH);
+  hPanel.setStyleAttribute("padding","10px");
+  hPanel.setStyleAttribute("fontSize", "12pt");
+  hPanel.setId("hpanel");
+  
+    //create a Horizontal Panel
+  var hPanel2 = container.createHorizontalPanel();
+  hPanel2.setWidth(PANEL_WIDTH);
+  hPanel2.setStyleAttribute("padding","10px");
+  hPanel2.setStyleAttribute("fontSize", "12pt");
+  hPanel2.setId("hpanel2");
+  
+  var hPanel3 = container.createHorizontalPanel();
+  hPanel3.setWidth(PANEL_WIDTH);
+  hPanel3.setStyleAttribute("padding","10px");
+  hPanel3.setStyleAttribute("fontSize", "12pt");
+  hPanel3.setId("hpanel3");
+
+  // label for future message
+  // default mode is hidden
+  var message = container.createLabel();
+  message.setStyleAttribute("fontSize", "14pt");
+  message.setStyleAttribute("font-weight", "normal");
+  message.setStyleAttribute("color","green");
+  message.setId("message");
+  message.setVisible(false);
+
+  // Date Picker
+  var apptStartDate = container.createDateBox();
+  var apptStartDateCap = container.createCaptionPanel("Start Date");
+  apptStartDateCap.add(apptStartDate);
+  apptStartDate.setName("apptStartDate");
+
+  // Hour Picker
+  var apptStartHour = container.createListBox();
+  var apptStartHourCap = container.createCaptionPanel("Hour");
+  apptStartHourCap.add(apptStartHour);
+  apptStartHour.setWidth(TEXTBOX_WIDTH);
+  apptStartHour.setName("apptStartHour");
+  for (h=1;h<=12;h++){
+    if(h<10){var hourstr='0'+h}else{var hourstr=h.toString()}
+    apptStartHour.addItem(hourstr)
+  }
+  
+  // Minute Picker
+  var apptStartMinute = container.createListBox();
+  var apptStartMinuteCap = container.createCaptionPanel("Minute");
+  apptStartMinuteCap.add(apptStartMinute);
+  apptStartMinute.setWidth(TEXTBOX_WIDTH);
+  apptStartMinute.setName("apptStartMinute");
+  for (m=0;m<60;m+=15){
+    if(m<10){var minstr='0'+m}else{var minstr=m.toString()}
+    apptStartMinute.addItem(minstr)
+  }
+  
+  // AM/PM Picker
+  var apptStartAMPM = container.createListBox();
+  var apptStartAMPMCap = container.createCaptionPanel("AM/PM");
+  apptStartAMPMCap.add(apptStartAMPM);
+  apptStartAMPM.setWidth(TEXTBOX_WIDTH);
+  apptStartAMPM.setName("apptStartAMPM");
+  apptStartAMPM.addItem("AM");
+  apptStartAMPM.addItem("PM");
+  
+  // Date Picker
+  var apptEndDate = container.createDateBox();
+  var apptEndDateCap = container.createCaptionPanel("End Date");
+  apptEndDateCap.add(apptEndDate);
+  apptEndDate.setName("apptEndDate");
+
+  // Hour Picker
+  var apptEndHour = container.createListBox();
+  var apptEndHourCap = container.createCaptionPanel("Hour");
+  apptEndHourCap.add(apptEndHour);
+  apptEndHour.setWidth(TEXTBOX_WIDTH);
+  apptEndHour.setName("apptEndHour");
+  for (h=1;h<=12;h++){
+    if(h<10){var hourstr='0'+h}else{var hourstr=h.toString()}
+    apptEndHour.addItem(hourstr)
+  }
+  
+  // Minute Picker
+  var apptEndMinute = container.createListBox();
+  var apptEndMinuteCap = container.createCaptionPanel("Minute");
+  apptEndMinuteCap.add(apptEndMinute);
+  apptEndMinute.setWidth(TEXTBOX_WIDTH);
+  apptEndMinute.setName("apptEndMinute");
+  for (m=0;m<60;m+=15){
+    if(m<10){var minstr='0'+m}else{var minstr=m.toString()}
+    apptEndMinute.addItem(minstr)
+  }
+  
+  // AM/PM Picker
+  var apptEndAMPM = container.createListBox();
+  var apptEndAMPMCap = container.createCaptionPanel("AM/PM");
+  apptEndAMPMCap.add(apptEndAMPM);
+  apptEndAMPM.setWidth(TEXTBOX_WIDTH);
+  apptEndAMPM.setName("apptEndAMPM");
+  apptEndAMPM.addItem("AM");
+  apptEndAMPM.addItem("PM");
+  
+  // Notes
+  var apptNotes = container.createTextBox();
+  var apptNotesCap = container.createCaptionPanel("Notes");
+  apptNotesCap.add(apptNotes);
+  apptNotes.setWidth(300);
+  apptNotes.setName("apptNotes");
+
+  // submit form
+  var submitButton = container.createButton();
+  submitButton.setText("Create Appointment");
+  submitButton.setId("submitButton");
+
+  // submit handlers
+  var submitServerHandler = container.createServerHandler('submitHandler_');
+  // disable button and tell user the program is working
+  var clickClientHandler = container.createClientHandler().forEventSource().setEnabled(false).forTargets(message).setVisible(true).setText("Working...");
+  submitServerHandler.addCallbackElement(hPanel);
+  submitServerHandler.addCallbackElement(hPanel2);
+  submitServerHandler.addCallbackElement(hPanel3);
+  submitButton.addClickHandler(clickClientHandler);
+  submitButton.addClickHandler(submitServerHandler);
+  
+  var prevApptBox = container.createListBox(true);
+  var prevApptBoxCap = container.createCaptionPanel("Existing Reservations");
+  prevApptBoxCap.add(prevApptBox);
+  prevApptBox.setName("prevApptBox");
+  prevApptBox.setId("prevApptBox");
+  prevApptBox.setVisibleItemCount(3);
+  populateApptBox();
+  
+  
+  var deleteButton = container.createButton();
+  deleteButton.setText("Delete Appointment");
+  deleteButton.setId("deleteButton");
+  
+  var deleteServerHandler = container.createServerHandler('deleteHandler_');
+  deleteServerHandler.addCallbackElement(vPanel);
+  deleteButton.addClickHandler(clickClientHandler);
+  deleteButton.addClickHandler(deleteServerHandler);  
+
+  // add all the widgets to the application
+  container.add(message);
+  hPanel.add(apptStartDateCap);
+  hPanel.add(apptStartHourCap);
+  hPanel.add(apptStartMinuteCap);
+  hPanel.add(apptStartAMPMCap);
+  hPanel2.add(apptEndDateCap);
+  hPanel2.add(apptEndHourCap);
+  hPanel2.add(apptEndMinuteCap);
+  hPanel2.add(apptEndAMPMCap);
+  hPanel3.add(apptNotesCap);
+  container.add(hPanel);
+  container.add(hPanel2);
+  container.add(hPanel3);
+  container.add(submitButton);
+  vPanel.add(prevApptBoxCap);
+  container.add(vPanel);
+  container.add(deleteButton);
+}
+
+// handler for submitting a reservation
+function submitHandler_(e) {
+  var app = UiApp.getActiveApplication();
+  var cal = CalendarApp.getCalendarById(CALENDAR_ID);
+  var startDate = e.parameter.apptStartDate;
+  var hour = parseInt(e.parameter.apptStartHour,10); //second parameter needed here to force base 10 inerpretation
+  if (e.parameter.apptStartAMPM=="PM" && e.parameter.apptStartHour!="12"){
+    hour += 12;
+  } else if (e.parameter.apptStartAMPM=="AM" && e.parameter.apptStartHour=="12") {
+    hour = 0;
+  }
+  startDate.setHours(hour);
+  startDate.setMinutes(parseInt(e.parameter.apptStartMinute));
+  
+  var endDate = e.parameter.apptEndDate;
+  var hour = parseInt(e.parameter.apptEndHour,10);
+  if (e.parameter.apptEndAMPM=="PM" && e.parameter.apptEndHour!="12"){
+    hour += 12;
+  } else if (e.parameter.apptEndAMPM=="AM" && e.parameter.apptEndHour=="12") {
+    hour = 0;
+  }
+  endDate.setHours(hour);
+  endDate.setMinutes(parseInt(e.parameter.apptEndMinute));
+  
+  if(isValid_(cal,startDate,endDate)) {
+    var userEmail = Session.getActiveUser().getEmail();
+    var createURL=EDIT_CALENDAR_SCRIPT_URL;
+    createURL+="?mode=add&email="+userEmail+"&cal="+CALENDAR_ID+"&sd="+startDate.getTime().toString()+"&ed="+endDate.getTime().toString()+"&apptNotes="+e.parameter.apptNotes;
+    var response = UrlFetchApp.fetch(createURL);
+    displayMessage_("Event created")
+    populateApptBox();
+  }
+  app.getElementById("submitButton").setEnabled(true);
+  return app;
+}
+
+//handler for deleting a reservation
+function deleteHandler_(e) {
+  var app = UiApp.getActiveApplication();
+  var cal = CalendarApp.getCalendarById(CALENDAR_ID);
+  var appts=getUserAppointments();
+  var items = e.parameter.prevApptBox;
+  var indices = items.split(",");
+  for (i=0;i<indices.length;i++){
+    var URL=EDIT_CALENDAR_SCRIPT_URL+"?mode=delete&cal="+CALENDAR_ID+"&id="+appts[indices[i]].getId();
+    var response = UrlFetchApp.fetch(URL);
+  }
+  populateApptBox();
+  displayMessage_("Deleted");
+  app.getElementById("deleteButton").setEnabled(true);
+  return app;
+}
+
+//show a message on the GUI
+function displayMessage_(string) {
+  var app = UiApp.getActiveApplication();
+  var message = app.getElementById("message");
+  message.setVisible(true).setText(string);
+  return message;
+}
+
+//Determines if event is allowed to be created, contains specific calendar rules
+function isValid_(cal,startDate,endDate) {
+  var now = new Date();
+  var userAppts = getUserAppointments();
+  var primeHours = getPrimeHours(startDate, endDate, userAppts);
+  if (endDate.getTime() <= startDate.getTime()) {
+    displayMessage_("End time must be after start time");
+    return false;
+  } else if (parseInt(now.getTime())>endDate.getTime()) {
+    displayMessage_("You can't book a time in the past");
+    return false;
+  } else if (endDate.getTime()-now.getTime()>2*DAY_IN_MSEC) {
+    displayMessage_("You may only book 2 days in advance");
+    return false;
+  } else if (cal.getEvents(startDate, endDate).length>0) {
+    displayMessage_("The calendar is already booked during that time");
+    return false;    
+  } else if (primeHours>3) {
+    displayMessage_("You may not book more than three prime hours (9am-7pm) in a day");
+    return false;
+  } else {
+    return true;
+  }
+}
+
+//Gets all future appointments (within NUM_DAYS_ADVANCE) that the active user is invited to
+function getUserAppointments() {
+  var cal = CalendarApp.getCalendarById(CALENDAR_ID);
+  var userEmail = Session.getActiveUser().getEmail();
+  var now = new Date();
+  var later = new Date(now.getTime() + NUM_DAYS_ADVANCE*DAY_IN_MSEC);
+  futureEvents=cal.getEvents(now,later);
+  var userAppts = new Array();
+  var j=0;
+  for (i=0;i<futureEvents.length;i++) {
+    if (futureEvents[i].getGuestByEmail(userEmail)!==null) {
+      userAppts[j]=futureEvents[i];
+      j++;
+    }
+  }
+  return userAppts;
+}
+
+//Adds all appointments to the appointment selection box
+function populateApptBox() {
+  var app = UiApp.getActiveApplication();
+  var apptBox = app.getElementById("prevApptBox");
+  apptBox.clear();
+  var prevUserAppts=getUserAppointments();
+  for (i=0;i<prevUserAppts.length;i++){
+    apptBox.addItem(prevUserAppts[i].getStartTime().toLocaleString(),i);
+  }
+  return apptBox;
+}
+
+//returns the number of prime hours booked (including new appointment) on the day of the new requested appointment
+function getPrimeHours(startDate, endDate, userAppts) {
+  var primeHours = 0;
+  var startDay=new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  var endDay=new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  var activeDays = new Array();
+  t=startDay.getTime();
+  while (t<=endDay.getTime()) {
+    activeDays.push(t);
+    t += 86400000;
+  }
+  for (i=0;i<activeDays.length;i++) {
+    for (j=0;j<userAppts.length;j++) {
+      var ph= Math.min(userAppts[j].getEndTime().getTime(),activeDays[i]+19*60*60*1000)-Math.max(userAppts[j].getStartTime().getTime(),activeDays[i]+9*60*60*1000);
+      if (ph>0){primeHours+=ph;}
+    }
+    var ph= Math.min(endDate.getTime(),activeDays[i]+19*60*60*1000)-Math.max(startDate.getTime(),activeDays[i]+9*60*60*1000);
+    if (ph>0){primeHours+=ph;}
+  }
+  return primeHours/60/60/1000;
+}
