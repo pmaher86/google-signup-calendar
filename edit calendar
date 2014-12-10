@@ -1,0 +1,18 @@
+function doGet(e) {
+  var mode = e.parameter.mode
+  if (mode=="add"){
+    var userEmail = e.parameter.email;
+    var cal = CalendarApp.getCalendarById(e.parameter.cal);
+    var sd = new Date(parseInt(e.parameter.sd));
+    var ed = new Date(parseInt(e.parameter.ed));
+    
+    var calEvent=cal.createEventFromDescription(userEmail+" "+(sd.getMonth()+1)+"/"+sd.getDate()+" to "+(ed.getMonth()+1)+"/"+ed.getDate());
+    calEvent.addGuest(userEmail);
+    calEvent.setDescription(e.parameter.apptNotes);
+  }
+  else if (mode=="delete"){
+    var cal = CalendarApp.getCalendarById(e.parameter.cal);
+    var eventSeries = cal.getEventSeriesById(e.parameter.id);
+    eventSeries.deleteEventSeries();
+  }
+}
